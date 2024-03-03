@@ -119,7 +119,7 @@ class CSVManager:
         if not latest_date or latest_date <= start_date:
             latest_date = start_date
         else:
-            latest_date += timedelta(seconds=1)
+            latest_date += timedelta(seconds=0.01)
         query = f'after:{int(latest_date.timestamp())}'
 
         with open(csv_file, mode='a', newline='', encoding='utf-8') as file, \
