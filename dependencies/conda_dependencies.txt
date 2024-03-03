@@ -1,0 +1,10 @@
+spacy
+beautifulsoup4
+scikit-learn
+sentencepiece
+joblib
+pandas
+numpy
+pyarrow
+pillow
+python=3.11
