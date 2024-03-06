@@ -7,7 +7,7 @@ class Config:
     BATCH_SIZE = 4
     device = 'cuda' if torch.cuda.is_available() else torch.device("mps")
 
-    hypothesis_label_dict = {
+    hypothesis_label_dic = {
     "Applied": "The email is related to a job application that the recipient has submitted, for instance, a confirmation email received after applying for a job.",
     "Rejected": "The email is related to a rejection from a job application, indicating that the recipient was not selected for the job role or that the application will not be moving forward.",
     "Irrelevant": "The email is not related to job applications, such as applying, being rejected, or being accepted for a job role. It does not pertain to the status or process of job applications.",
