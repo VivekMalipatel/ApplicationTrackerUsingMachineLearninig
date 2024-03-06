@@ -8,3 +8,4 @@ numpy
 pyarrow
 pillow
 python=3.11
+accelerate

@@ -18,7 +18,7 @@ def install_pytorch():
         if cuda_version:
             command = f"conda install --yes -c pytorch -c nvidia pytorch torchvision torchaudio cudatoolkit={cuda_version}"
         else:
-            command = "conda install --yes -c pytorch pytorch torchvision torchaudio cpuonly"
+            command = "conda install --yes -c pytorch torchvision torchaudio -c pytorch-nightly"
     else:
         print(f"Unsupported OS for PyTorch installation: {os_type}")
         sys.exit(1)
@@ -63,8 +63,8 @@ def install_pip_dependencies():
         subprocess.check_call(command1)
         
         # Downloading specific spacy model
-        command2 = [python_executable, '-m', 'spacy', 'download', 'en_core_web_trf']
-        subprocess.check_call(command2)
+        #command2 = [python_executable, '-m', 'spacy', 'download', 'en_core_web_trf']
+        #subprocess.check_call(command2)
 
         if platform.system() == "Windows":
         
@@ -79,6 +79,6 @@ def install_pip_dependencies():
         sys.exit(1)
 
 if __name__ == "__main__":
-    #install_conda_dependencies()
+    install_conda_dependencies()
     install_pip_dependencies()
     print("Dependencies Installed, Please restart the IDE")

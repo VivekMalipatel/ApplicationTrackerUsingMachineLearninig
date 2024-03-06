@@ -4,6 +4,9 @@ import re
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+import string
 
 class CSVFileManager:
     def __init__(self, input_file_path, output_file_path):
@@ -35,8 +38,10 @@ class CSVFileManager:
                 writer.writerow(email)
 
 class EmailProcessor:
-    @staticmethod
-    def refine_email_body(body):
+    def __init__(self):
+        self.lemmatizer = WordNetLemmatizer()
+
+    def refine_text(self, body):
         if bool(BeautifulSoup(body, "html.parser").find()):
             soup = BeautifulSoup(body, "html.parser")
             text = soup.get_text(separator="\n")
@@ -44,20 +49,33 @@ class EmailProcessor:
             text = body.strip()
         url_pattern = r'https?://\S+|www\.\S+'
         text = re.sub(url_pattern, '', text)
-        return text
-
-    @staticmethod
-    def convert_to_utc(dt):
+        text = re.sub(r'https?://\S+|www\.\S+', '', text)
+        text = re.sub(r'<.*?>', '', text)
+        text = re.sub(r'\d+', '', text)
+        text = re.sub(r'[^a-zA-Z\s]', '', text)
+        text = re.sub(r'\S*@\S*\s?', '', text)
+        text = re.sub(f"[{string.punctuation}]", "", text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        tokens = word_tokenize(text)
+        tokens = [self.lemmatizer.lemmatize(word) for word in tokens]
+        return ' '.join(tokens)
+    
+    def convert_to_utc(self, dt):
         if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
             return dt.replace(tzinfo=timezone.utc)
         else:
             return dt.astimezone(timezone.utc)
+    
+    def fit_hypothesis(self, email):
+        return email['Subject']+ '. The email: "' + email['Body']+ '" -end of the email. '
 
     def process_emails(self, emails, processed_emails):
-        processed_emails_ids = {email['ID'] for email in processed_emails}
+        processed_emails_ids = {email['MessageID'] for email in processed_emails}
         new_emails = [email for email in emails if email['MessageID'] not in processed_emails_ids]
         for email in new_emails:
-            email['Body'] = self.refine_email_body(email['Body'])
+            email['Body'] = self.refine_text(email['Body'])
+            email['Subject'] = self.refine_text(email['Subject'])
+            email['text'] = self.fit_hypothesis(email)
             try:
                 parsed_date = parsedate_to_datetime(email['Date'])
                 email['ParsedDate'] = self.convert_to_utc(parsed_date)
