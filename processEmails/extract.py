@@ -3,24 +3,19 @@ import re
 import os
 import spacy
 import joblib
+import pandas as pd
 from llm_inference import Model
 from collections import Counter
 
 class EmailProcessor:
-    def __init__(self, model_path='model/classification/naive_bayes_model.joblib', nlp_model="en_core_web_trf"):
+    def __init__(self, ner_model="en_core_web_trf"):
         self.model = Model()
-        self.nlp = spacy.load(nlp_model)
-        if os.path.exists(model_path):
-            self.model = joblib.load(model_path)
-        else:
-            raise FileNotFoundError(f"Model file not found at {model_path}")
+        self.ner = spacy.load(ner_model)
 
-    def predict_label(self, text):
-        text_lst = [text]*10
-        prediction = self.model.predict(text_lst)
-        counter = Counter(prediction)
-        most_common_element, _ = counter.most_common(1)[0]
-        return most_common_element
+    def predict_labels(self, text):
+        prediction = self.model.predict(text)
+        print(prediction)
+        return prediction
 
     def keyword_search(self, text, phrases):
         for phrase in phrases:
@@ -42,31 +37,15 @@ class EmailProcessor:
             "we are pursuing other applicants",
         ]
 
-        if self.predict_label(text) == "Applied" :#or self.keyword_search(text, applied_phrases) or self.keyword_search(text, applied_phrases) :
-            return "Applied"
-        elif  self.predict_label(text) == "Rejected" :#or self.keyword_search(text, reject_phrases) or self.keyword_search(text, reject_phrases) :
-            return "Rejected"
-        elif  self.predict_label(text) == "Accepted" :#or self.keyword_search(text, reject_phrases) or self.keyword_search(text, reject_phrases) :
-            return "Accepted"
-        return "Irrelevant"
-
-    def extract_company_role_name(self, email, body, subject):
-        role = "Unknown"
-        combined_text = subject + " " + body
-        doc = self.nlp(combined_text)
-        names_entities = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
-
-        match = re.match(r'(.+?)\s*<.*?>', email)
-        if match:
-            return match.group(1).strip(), role
-        else:
-            domain_match = re.search(r'(?<=@)[^>]+(?=\.)', email)
-            if domain_match:
-                return domain_match.group(0).capitalize(), role
-
-        if len(names_entities) > 0:
-            return names_entities[0], role
-        return "Unknown", role
+        return self.predict_labels(text)
+    
+    def extract_company_name(self, text):
+        company_name = "Unknown"
+        nes = self.ner(text)
+        org_names = [ent.text for ent in nes.ents if ent.label_ == "ORG"]
+        if org_names:
+            company_name = org_names[0]
+        return company_name
 
 
 class ApplicationTracker:
@@ -83,25 +62,15 @@ class ApplicationTracker:
         except FileNotFoundError:
             pass
 
-        for email_data in emails_data:
-            status = email_processor.determine_status(email_data['text'])
-            if status == "Irrelevant":
+        emails_data['Status'] = email_processor.determine_status(emails_data['text'].tolist())
+        for _,email_data in emails_data.iterrows():
+            if email_data['Status'] == "Irrelevant":
                 continue
-            company_name, role = email_processor.extract_company_role_name(email_data['From'], email_data['Body'], email_data['Subject'])
-            company_name = company_name.strip()
-            found = False
-            '''
-            for entry in tracker_data:
-                if entry['Email'].lower() == email_data['From'].lower():
-                    entry['Status'] = status  # Update existing entry status
-                    found = True
-                    break
-            if not found:
-            '''
+            company_name = email_processor.extract_company_name(email_data['text'])
             tracker_data.append({
-                'Company Name': company_name,
-                'Status': status,
-                'Email': email_data['From']
+                'Company Name' : company_name,
+                'Email': email_data['From'],
+                'Status': email_data['Status'],
             })
 
         tracker_data.sort(key=lambda x: (x['Status'] == "Rejected", x['Company Name']))
@@ -122,11 +91,13 @@ class EmailDataManager:
 
     def read_processed_emails(self):
         try:
-            with open(self.emails_csv_path, mode='r', encoding='utf-8') as file:
-                reader = csv.DictReader(file)
-                return sorted([row for row in reader], key=lambda x: x['ParsedDate'])
+            df = pd.read_csv(self.emails_csv_path, encoding='utf-8')
+            df['ParsedDate'] = pd.to_datetime(df['ParsedDate'], errors='coerce')
+            sorted_df = df.sort_values(by='ParsedDate')
+            return sorted_df
         except FileNotFoundError:
-            return []
+            # Return an empty DataFrame if the file does not exist
+            return pd.DataFrame()
 
 
 def main():
