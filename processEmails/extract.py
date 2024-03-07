@@ -53,6 +53,7 @@ class ApplicationTracker:
         self.tracker_file = tracker_file
 
     def update_application_tracker(self, emails_data, email_processor):
+        
         tracker_data = []
         try:
             with open(self.tracker_file, mode='r', newline='', encoding='utf-8') as file:
@@ -100,7 +101,7 @@ class EmailDataManager:
             return pd.DataFrame()
     
     def flush_emails(self, emails_data, emails_csv_path, flush_path):
-        emails_data = pd.DataFrame(new_emails)
+        emails_data = pd.DataFrame(emails_data)
         file_exists = os.path.isfile(flush_path) and os.path.getsize(flush_path) > 0
 
         all_emails = pd.read_csv(emails_csv_path)
@@ -116,15 +117,17 @@ class EmailDataManager:
 def main():
     emails_csv_path = 'processEmails/processed_emails.csv'
     application_tracker_path = 'applicationTracker.csv'
-    flush_path = 'processEmails/flushed_emails.csv'
+    flush_path = 'processEmails/flushed_processed_emails.csv'
     email_processor = EmailProcessor()
     email_data_manager = EmailDataManager(emails_csv_path, application_tracker_path)
 
     emails_data = email_data_manager.read_emails()
-    email_data_manager.application_tracker.update_application_tracker(emails_data, email_processor)
-
-    email_data_manager.flush(emails_data,emails_csv_path,flush_path)
-
+    #emails_data = emails_data.sample(frac=0.01)
+    if emails_data.shape[0] == 0:
+        print("No New Emails to Track")
+    else :
+        email_data_manager.application_tracker.update_application_tracker(emails_data, email_processor)
+        email_data_manager.flush_emails(emails_data,emails_csv_path,flush_path)
 
 if __name__ == "__main__":
     main()
