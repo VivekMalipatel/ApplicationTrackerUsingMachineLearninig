@@ -99,27 +99,47 @@ class CSVManager:
         self.email_manager = EmailManager(service)
 
     @staticmethod
-    def get_latest_email_date(csv_file):
-        latest_date = None
+    def get_latest_email_date(csv_file,flushed_file=''):
+        new_latest_date = None
+        flushed_latest_date = None
         if os.path.exists(csv_file):
             with open(csv_file, mode='r', newline='', encoding='utf-8') as file:
                 reader = csv.DictReader(file)
                 dates = [row['Date'] for row in reader if row['Date'] and row['Date'] != "No Date"]
                 if dates:
                     try:
-                        latest_date = max(parsedate_to_datetime(date).replace(tzinfo=ZoneInfo("UTC")) for date in dates)
+                        new_latest_date = max(parsedate_to_datetime(date).replace(tzinfo=ZoneInfo("UTC")) for date in dates)
                     except ValueError as e:
                         print(f"Error parsing date: {e}")
-        return latest_date
+                        
+        if os.path.exists(flushed_file):
+            with open(flushed_file, mode='r', newline='', encoding='utf-8') as file2:
+                reader = csv.DictReader(file2)
+                dates = [row['Date'] for row in reader if row['Date'] and row['Date'] != "No Date"]
+                if dates:
+                    try:
+                        flushed_latest_date = max(parsedate_to_datetime(date).replace(tzinfo=ZoneInfo("UTC")) for date in dates)
+                    except ValueError as e:
+                        print(f"Error parsing date: {e}")
+                        
+        if flushed_latest_date == None and new_latest_date!=None :
+            return new_latest_date
+        elif new_latest_date == None and flushed_latest_date != None :
+            return flushed_latest_date
+        elif flushed_latest_date != None and new_latest_date != None:
+            return max(new_latest_date,flushed_latest_date)
+        else:
+            return None
 
     def save_emails_to_csv(self, start_date):
         csv_file = 'mail/emails.csv'
         fail_csv_file = 'mail/fail_emails.csv'
-        latest_date = self.get_latest_email_date(csv_file)
+        flushed_file = 'mail/flushed_emails.csv'
+        latest_date = self.get_latest_email_date(csv_file, flushed_file)
         if not latest_date or latest_date <= start_date:
             latest_date = start_date
         else:
-            latest_date += timedelta(seconds=0.01)
+            latest_date += timedelta(seconds=1)
         query = f'after:{int(latest_date.timestamp())}'
 
         with open(csv_file, mode='a', newline='', encoding='utf-8') as file, \
@@ -180,7 +200,7 @@ class CSVManager:
                 email_count = sum(1 for row in reader)
                 latest_date = CSVManager.get_latest_email_date(csv_file)
                 if latest_date:
-                    print(f"Number of emails in CSV: {email_count}")
+                    print(f"Number of new emails in CSV: {email_count}")
                     print(f"Latest date fetched: {latest_date.strftime('%Y-%m-%d %H:%M:%S %z')}")
                 else:
                     print("No emails in CSV.")

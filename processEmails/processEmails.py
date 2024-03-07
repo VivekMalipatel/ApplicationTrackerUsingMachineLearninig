@@ -1,6 +1,8 @@
 import csv
 import sys
 import re
+import os
+import pandas as pd
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -9,9 +11,10 @@ from nltk.stem import WordNetLemmatizer
 import string
 
 class CSVFileManager:
-    def __init__(self, input_file_path, output_file_path):
+    def __init__(self, input_file_path, output_file_path, flush_path):
         self.input_file_path = input_file_path
         self.output_file_path = output_file_path
+        self.flush_path = flush_path
 
     def read_emails(self):
         emails = []
@@ -36,6 +39,19 @@ class CSVFileManager:
                 writer.writeheader()
             for email in emails:
                 writer.writerow(email)
+    
+    def flush_emails(self, new_emails):
+        new_emails = pd.DataFrame(new_emails)
+        file_exists = os.path.isfile(self.flush_path) and os.path.getsize(self.flush_path) > 0
+
+        all_emails = pd.read_csv(self.input_file_path)
+        emails_to_flush = all_emails[all_emails['MessageID'].isin(new_emails['MessageID'])]
+        emails_to_flush.to_csv(self.flush_path, mode='a', header=not file_exists, index=False)
+
+        filtered_all_emails = all_emails[~all_emails['MessageID'].isin(new_emails['MessageID'])]
+        filtered_all_emails.to_csv(self.input_file_path, index=False)
+
+        print("Emails Flushed")
 
 class EmailProcessor:
     def __init__(self):
@@ -97,8 +113,9 @@ def main():
     set_max_csv_field_size()
     emails_path = 'mail/emails.csv'
     output_path = 'processEmails/processed_emails.csv'
+    flush_path = 'mail/flushed_emails.csv'
 
-    file_manager = CSVFileManager(emails_path, output_path)
+    file_manager = CSVFileManager(emails_path, output_path, flush_path)
     all_emails = file_manager.read_emails()
     processed_emails = file_manager.read_processed_emails()
 
@@ -108,6 +125,7 @@ def main():
     if new_emails:
         file_manager.append_emails(new_emails)
         print(f"Processed and saved {len(new_emails)} new emails.")
+        file_manager.flush_emails(new_emails)
     else:
         print("No new emails to process.")
 

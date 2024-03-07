@@ -89,7 +89,7 @@ class EmailDataManager:
         self.emails_csv_path = emails_csv_path
         self.application_tracker = ApplicationTracker(application_tracker_path)
 
-    def read_processed_emails(self):
+    def read_emails(self):
         try:
             df = pd.read_csv(self.emails_csv_path, encoding='utf-8')
             df['ParsedDate'] = pd.to_datetime(df['ParsedDate'], errors='coerce')
@@ -98,16 +98,32 @@ class EmailDataManager:
         except FileNotFoundError:
             # Return an empty DataFrame if the file does not exist
             return pd.DataFrame()
+    
+    def flush_emails(self, emails_data, emails_csv_path, flush_path):
+        emails_data = pd.DataFrame(new_emails)
+        file_exists = os.path.isfile(flush_path) and os.path.getsize(flush_path) > 0
+
+        all_emails = pd.read_csv(emails_csv_path)
+        emails_to_flush = all_emails[all_emails['MessageID'].isin(emails_data['MessageID'])]
+        emails_to_flush.to_csv(flush_path, mode='a', header=not file_exists, index=False)
+
+        filtered_all_emails = all_emails[~all_emails['MessageID'].isin(emails_data['MessageID'])]
+        filtered_all_emails.to_csv(emails_csv_path, index=False)
+
+        print("Emails Flushed")
 
 
 def main():
     emails_csv_path = 'processEmails/processed_emails.csv'
     application_tracker_path = 'applicationTracker.csv'
+    flush_path = 'processEmails/flushed_emails.csv'
     email_processor = EmailProcessor()
     email_data_manager = EmailDataManager(emails_csv_path, application_tracker_path)
 
-    emails_data = email_data_manager.read_processed_emails()
+    emails_data = email_data_manager.read_emails()
     email_data_manager.application_tracker.update_application_tracker(emails_data, email_processor)
+
+    email_data_manager.flush(emails_data,emails_csv_path,flush_path)
 
 
 if __name__ == "__main__":
