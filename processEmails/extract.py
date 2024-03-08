@@ -4,12 +4,13 @@ import os
 import spacy
 import joblib
 import pandas as pd
-from llm_inference import Model
+from llm_inference import Config, Model
 from collections import Counter
 
 class EmailProcessor:
     def __init__(self, ner_model="en_core_web_trf"):
         self.model = Model()
+        self.Config = Config()
         self.ner = spacy.load(ner_model)
 
     def predict_labels(self, text):
@@ -42,10 +43,11 @@ class EmailProcessor:
     def extract_company_name(self, text):
         company_name = "Unknown"
         nes = self.ner(text)
-        org_names = [ent.text for ent in nes.ents if ent.label_ == "ORG"]
-        if org_names:
-            company_name = org_names[0]
-        return company_name
+        named_entities = [ent.text for ent in nes.ents if ent.label_ == "ORG"]
+        if named_entities:
+            named_entities_dict = {str(item): str(item) for item in named_entities}
+            company_name = self.model.predict([text], named_entities_dict, named_entities)
+        return company_name[0]
 
 
 class ApplicationTracker:
@@ -68,16 +70,18 @@ class ApplicationTracker:
             if email_data['Status'] == "Irrelevant":
                 continue
             company_name = email_processor.extract_company_name(email_data['text'])
+            print(company_name)
             tracker_data.append({
                 'Company Name' : company_name,
                 'Email': email_data['From'],
                 'Status': email_data['Status'],
+                'Status Updated' : email_data['Date']
             })
-
+            
         tracker_data.sort(key=lambda x: (x['Status'] == "Rejected", x['Company Name']))
-
+        
         with open(self.tracker_file, mode='w', newline='', encoding='utf-8') as file:
-            fieldnames = ['Company Name', 'Status', 'Email']
+            fieldnames = ['Company Name', 'Status', 'Email', 'Status Updated']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
             for entry in tracker_data:
