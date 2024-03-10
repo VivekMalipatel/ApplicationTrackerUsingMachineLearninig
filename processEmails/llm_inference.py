@@ -3,9 +3,9 @@ import torch
 
 class Config:
     MAX_LEN = 512
-    MODEL_PATH = "/Users/vivekmalipatel/Downloads/llms/myModels/applicationTracker_DeBERTa_v3_base_finetuned"
-    BATCH_SIZE = 8 if 'xsmall' in MODEL_PATH else 4
-    device = 'cuda' if torch.cuda.is_available() else torch.device("mps")
+    MODEL_PATH = "applicationTracker_DeBERTa_v3_base_finetuned"
+    BATCH_SIZE = 128 #8 if 'xsmall' in MODEL_PATH else 4
+    device = 'cuda:5' if torch.cuda.is_available() else torch.device("mps")
 
     hypothesis_class_label_dic = {
     "Applied": "The email is related to a job application that the recipient has submitted, for instance, a confirmation email received after applying for a job.",

@@ -3,16 +3,16 @@ import base64
 import pickle
 import csv
 import time
-import sys
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 # Increase the maximum field size limit
-csv.field_size_limit(max([sys.maxsize, 2147483647]))  # Max int value for 32/64 bit
+csv.field_size_limit(2147483647)  # Max int value for 32/64 bit
 
 class GmailService:
     SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -108,7 +108,7 @@ class CSVManager:
                 dates = [row['Date'] for row in reader if row['Date'] and row['Date'] != "No Date"]
                 if dates:
                     try:
-                        new_latest_date = max(parsedate_to_datetime(date).replace(tzinfo=ZoneInfo("UTC")) for date in dates)
+                        new_latest_date = max(parsedate_to_datetime(date).replace(tzinfo=timezone.utc) for date in dates)
                     except ValueError as e:
                         print(f"Error parsing date: {e}")
                         
@@ -118,7 +118,7 @@ class CSVManager:
                 dates = [row['Date'] for row in reader if row['Date'] and row['Date'] != "No Date"]
                 if dates:
                     try:
-                        flushed_latest_date = max(parsedate_to_datetime(date).replace(tzinfo=ZoneInfo("UTC")) for date in dates)
+                        flushed_latest_date = max(parsedate_to_datetime(date).replace(tzinfo=timezone.utc) for date in dates)
                     except ValueError as e:
                         print(f"Error parsing date: {e}")
                         
@@ -208,7 +208,7 @@ class CSVManager:
 def main():
     gmail_service = GmailService().service
     csv_manager = CSVManager(gmail_service)
-    start_date = datetime(2023, 12, 30, 23, 59, 59, tzinfo=ZoneInfo("UTC"))
+    start_date = datetime(2023, 8, 1, 23, 59, 59, tzinfo=timezone.utc)
     csv_manager.save_emails_to_csv(start_date)
     csv_manager.report_emails_info('mail/emails.csv')
 

@@ -6,6 +6,7 @@ import joblib
 import pandas as pd
 from llm_inference import Config, Model
 from collections import Counter
+import time
 
 class EmailProcessor:
     def __init__(self, ner_model="en_core_web_trf"):
@@ -128,4 +129,7 @@ def main():
         email_data_manager.flush_emails(emails_data,emails_csv_path,flush_path)
 
 if __name__ == "__main__":
+    time_i = time.time()
     main()
+    time_j = time.time()
+    print(time_j-time_i)
