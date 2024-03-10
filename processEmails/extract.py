@@ -18,12 +18,6 @@ class EmailProcessor:
         print(prediction)
         return prediction
 
-    def keyword_search(self, text, phrases):
-        for phrase in phrases:
-            if any(phrase.lower() in text.lower() for phrase in phrases):
-                return True
-        return False
-
     def determine_status(self, text):
         applied_phrases = [
             "we received your application", "we have received your application",
@@ -86,7 +80,7 @@ class ApplicationTracker:
             writer.writeheader()
             for entry in tracker_data:
                 writer.writerow(entry)
-        print(f"{self.tracker_file} updated")
+        print(f"{self.tracker_file} updated") 
 
 
 class EmailDataManager:

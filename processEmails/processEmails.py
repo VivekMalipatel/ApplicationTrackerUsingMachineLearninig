@@ -67,6 +67,8 @@ class EmailProcessor:
         text = re.sub(url_pattern, '', text)
         text = re.sub(r'https?://\S+|www\.\S+', '', text)
         text = re.sub(r'<.*?>', '', text)
+        text = re.sub(r'\S+@\S+', '', text)
+        text = re.sub(r'\b\w\b', '', text)
         text = re.sub(r'\d+', '', text)
         text = re.sub(r'[^a-zA-Z\s]', '', text)
         text = re.sub(r'\S*@\S*\s?', '', text)

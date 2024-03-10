@@ -2,3 +2,7 @@
 mail/token.pickle
 mail/cred.json
 *.csv
+processEmails/__pycache__/llm_inference.cpython-311.pyc
+processEmails/__pycache__/llm_inference.cpython-311.pyc
+*.pyc
+*.pyc
