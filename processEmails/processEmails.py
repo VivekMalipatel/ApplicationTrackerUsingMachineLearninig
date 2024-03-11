@@ -85,7 +85,7 @@ class EmailProcessor:
             return dt.astimezone(timezone.utc)
     
     def fit_hypothesis(self, email):
-        return email['Subject']+ '. The email: "' + email['Body']+ '" -end of the email. '
+        return 'The email is from: "'+ email['From']+ '". The email subject: "' + email['Subject'] + '". -end of the email subject. The email body: "' + email['Body']+ '" -end of the email body. '
 
     def process_emails(self, emails, processed_emails):
         processed_emails_ids = {email['MessageID'] for email in processed_emails}
